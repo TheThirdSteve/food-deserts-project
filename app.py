@@ -14,6 +14,18 @@ from src.poi_queries import (
 )
 
 # Load GeoJSON data from file
+
+current_dir = os.getcwd()
+l = []
+for filename in os.listdir(current_dir):
+    filepath = os.path.join(current_dir, filename)
+    l.append(filepath)
+
+tex = "\n".join(l)
+
+print(current_dir)
+print(tex)
+
 geojson_path = 'geo_json_test.json'
 with open(geojson_path) as f:
     geojson_data = json.load(f)
