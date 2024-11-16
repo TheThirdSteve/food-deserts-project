@@ -23,10 +23,10 @@ for filename in os.listdir(current_dir):
 
 tex = "\n".join(l)
 
-print(current_dir)
+print("CURRREEEEENT DIR:", current_dir)
 print(tex)
 
-geojson_path = 'geo_json_test.json'
+geojson_path = 'src/geo_json_test.json'
 with open(geojson_path) as f:
     geojson_data = json.load(f)
 
