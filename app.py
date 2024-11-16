@@ -26,7 +26,7 @@ from src.poi_queries import (
 )
 
 # Load GeoJSON data from file
-geojson_paths = ['geo_json_ga.json']
+geojson_paths = ['geo_json_test.json']
 geojson_data = {"type": "FeatureCollection", "features": []}
 
 for path in geojson_paths:
