@@ -26,7 +26,7 @@ from src.poi_queries import (
 )
 
 # Load GeoJSON data from file
-geojson_paths = ['geo_json_test.json']
+geojson_paths = ['src/geo_json_test.json']
 geojson_data = {"type": "FeatureCollection", "features": []}
 
 for path in geojson_paths:
@@ -177,6 +177,7 @@ def generate_map(location="Denver, CO", svi="E_POV150"):
 
 # Dash app setup
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+server = app.server
 
 # App layout with dropdown to select location and map
 app.layout = dbc.Container(
