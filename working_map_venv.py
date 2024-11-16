@@ -7,14 +7,6 @@ from dash.dependencies import Input, Output
 import dash_bootstrap_components as dbc
 import json
 
-# Adjust working directory and sys.path
-current_dir = os.getcwd().split("/")[-1]
-if current_dir in ("notebooks", "src"):
-    os.chdir("..")
-    parent_dir = os.path.abspath(os.getcwd())
-    if parent_dir not in sys.path:
-        sys.path.append(parent_dir)
-
 from src.poi_queries import (
     groceries_from_placename,
     convenience_from_placename,
@@ -95,6 +87,7 @@ def generate_map(location="Denver, CO"):
 
 # Dash app setup
 app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+server = app.server
 
 # App layout with dropdown to select location and map
 app.layout = dbc.Container(
