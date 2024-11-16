@@ -1,17 +1,54 @@
-# food-deserts-project
-repo for class project
+# Food Deserts Visualization Project
 
-# 1. Create and activate a virtual environment (recommended)
-python -m venv venv # Or, python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+This project provides interactive visualizations of food desert data across different regions.
 
-# 2. Install requirements from requirements.txt
+## Prerequisites
+- Tested using Python 3.10
 
-pip install -r requirements.txt
 
-# 3. Run with Gunicorn
-gunicorn app:server --bind 0.0.0.0:8000
+## Installation & Setup
 
-# 4. Open from localhost
+1. **Create and activate a virtual environment**
 
-http://127.0.0.1:8700
+   Create a new virtual environment:
+   ```bash
+   # For most systems (assuming python 3 is installed as python)
+   python -m venv venv
+   
+   # For Linux systems 
+   python3 -m venv venv
+   ```
+
+   Activate the virtual environment:
+   ```bash
+   # For Unix/Linux/MacOS
+   source venv/bin/activate
+   
+   # For Windows
+   venv\Scripts\activate
+   ```
+
+2. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run the application**
+   ```bash
+   gunicorn app:server --bind 0.0.0.0:8000
+   ```
+
+4. **Access the application**
+   
+   Open your web browser and navigate to:
+   http://127.0.0.1:8000
+
+## Troubleshooting
+
+- If port 8000 is already in use, you can specify a different port:
+  ```bash
+  gunicorn app:server --bind 0.0.0.0:8050
+  ```
+
+- If you see "command not found: gunicorn", ensure you've activated your virtual environment
+
