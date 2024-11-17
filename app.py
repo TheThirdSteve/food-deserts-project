@@ -5,13 +5,15 @@ import dash
 import dash_leaflet as dl
 import dash_leaflet.express as dlx
 from dash import html, dcc
-from dash.dependencies import Input, Output
+from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 import json
 from dash_extensions.javascript import assign
 from geopy.geocoders import Nominatim
 import warnings
+import requests
 
+first_time = True
 # Adjust working directory and sys.path
 current_dir = os.getcwd().split("/")[-1]
 if current_dir in ("notebooks", "src"):
@@ -37,21 +39,21 @@ def clean_invalid_values(geojson, invalid_value=-999):
 
 
 # Load GeoJSON data from file
+def create_geo_json_data(location_state):
+    geojson_path = f"data/geo_json/geo_json_{location_state}.json"
+    geojson_data = {"type": "FeatureCollection", "features": []}
 
-geojson_paths = ["geo_json_test.json"]
-geojson_data = {"type": "FeatureCollection", "features": []}
+    geojson_data = clean_invalid_values(geojson=geojson_data)
 
-# remove -999 as null values.
-geojson_data = clean_invalid_values(geojson=geojson_data)
-
-for path in geojson_paths:
-    with open(path) as f:
+    with open(geojson_path) as f:
         try:
             data = json.load(f)
         except FileNotFoundError as e:
             warnings.warn(f"{e}")
             data = json.load(rf"src/{f}")
         geojson_data["features"].extend(data["features"])
+
+    return geojson_data
 
 
 # Helper to convert POI GeoDataFrame to leaflet markers
@@ -78,22 +80,17 @@ def find_center_of_location(grocery):
     center = [coordinates.y.values[0], coordinates.x.values[0]]
     return center
 
-
-# def find_center_of_location(location_name):
-#     # Check if the CRS is not WGS84, reproject to WGS84 (EPSG:4326)
-#     if grocery.crs != "EPSG:4326":
-#         grocery = grocery.to_crs(epsg=4326)
-
-#     # Find the centroid of the dissolved geometry
-#     dissolved = grocery.dissolve()  # Dissolve all geometries into a single geometry
-#     centroid = dissolved.geometry.centroid  # Get the centroid of the dissolved geometry
-
-#     # Extract coordinates as [latitude, longitude]
-#     center = [centroid.y.iloc[0], centroid.x.iloc[0]]
-#     return center
+def find_state(center):
+    url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={center[0]}&lon={center[1]}&zoom=10&addressdetails=1"
+    response = requests.get(url)
+    data = response.json()
+    address = data.get('address', {})
+    state_code = address.get('ISO3166-2-lvl4', '').split("-")[-1]
+ 
+    return state_code
 
 
-def generate_style_handle(svi):
+def generate_style_handle(svi, geojson_data):
 
     if svi == "POP_DENSITY":
         e_totpop = [
@@ -162,7 +159,7 @@ def generate_style_handle(svi):
     return style_handle, colorscale, classes, style, colorbar
 
 
-def get_map_components(grocery_markers, convenience_markers, lowquality_markers, svi):
+def get_map_components(grocery_markers, convenience_markers, lowquality_markers, svi, geo_json_data):
 
     return_value = [
         dl.TileLayer(
@@ -173,11 +170,11 @@ def get_map_components(grocery_markers, convenience_markers, lowquality_markers,
     ]
 
     if svi != "None":
-        style_handle, colorscale, classes, style, colorbar = generate_style_handle(svi)
+        style_handle, colorscale, classes, style, colorbar = generate_style_handle(svi, geo_json_data)
         return_value.append(
             dl.Pane(
                 dl.GeoJSON(
-                    data=geojson_data,
+                    data=geo_json_data,
                     id="geojson-layer",
                     style=style_handle,  # apply style from JavaScript
                     # zoomToBounds=True,  # when true, zooms to bounds when data changes (e.g. on load)
@@ -225,14 +222,18 @@ def get_map_components(grocery_markers, convenience_markers, lowquality_markers,
 # Function to generate a Dash Leaflet map with GeoJSON color scheme
 def generate_map(location="Denver, CO", svi="E_POV150"):
     # Set map center based on selected location
-    # center = [39.7392, -104.9903]  # default to Denver, CO coordinates
+    center = [39.7392, -104.9903]  # default to Denver, CO coordinates
 
     grocery = groceries_from_placename(location, centroids_only=True)
     convenience = convenience_from_placename(location, centroids_only=True)
     lowquality = lowquality_from_placename(location, centroids_only=True)
 
-    # if location != "Denver, CO":
-    center = find_center_of_location(grocery)
+    if location != "Denver, CO":
+        center = find_center_of_location(grocery)
+
+
+    location_state = find_state(center)
+    geo_json_data = create_geo_json_data(location_state)
 
     # Create marker layers
     grocery_markers = poi_to_markers(grocery, color="#4daf4a", radius=10)
@@ -250,7 +251,7 @@ def generate_map(location="Denver, CO", svi="E_POV150"):
         center=center,
         zoom=12,
         children=get_map_components(
-            grocery_markers, convenience_markers, lowquality_markers, svi
+            grocery_markers, convenience_markers, lowquality_markers, svi, geo_json_data
         ),
         style={"width": "100%", "height": "600px"},
     )
@@ -265,7 +266,6 @@ server = app.server
 # App layout with dropdown to select location and map
 app.layout = dbc.Container(
     [
-        dcc.Store(id="n-submit-store", data=True),
         dbc.Row(
             dbc.Col(
                 html.H1("Grocery Stores and SVI Data", className="text-center mb-4")
@@ -336,13 +336,12 @@ app.layout = dbc.Container(
                                             "label": "E_NOVEH - No Vehicles",
                                             "value": "E_NOVEH",
                                         },
-                                        {"label": "RPL_THEME1", "value": "RPL_THEME1"},
                                         {
                                             "label": "None - No Selection",
                                             "value": "None",
                                         },
                                     ],
-                                    value="RPL_THEME1",
+                                    value="E_TOTPOP",
                                     className="mb-4",
                                     style=dict(width="100%"),
                                 ),
@@ -357,21 +356,18 @@ app.layout = dbc.Container(
     fluid=True,
 )
 
-
 # Callback to update the map based on selected location
 @app.callback(
     Output("map-container", "children"),
     Input("location-input", "n_submit"),
-    Input("location-input", "value"),
+    State("location-input", "value"),
     Input("SVI-val-dropdown", "value"),
-    Input("n-submit-store", "data"),
 )
-def update_map(n_submit, location, svi, initial_n_submit):
-    if (
-        n_submit or initial_n_submit
-    ):  # Ensure the update happens only when Enter is pressed
+def update_map(n_submit, location, svi):
+    if n_submit or location == "Denver, CO":
         return generate_map(location, svi)
     return dash.no_update
+
 
 
 # Run the app
