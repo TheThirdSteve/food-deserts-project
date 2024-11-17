@@ -45,7 +45,7 @@ def clean_invalid_values(geojson, invalid_value=-999):
 
 # Load GeoJSON data from file
 def create_geo_json_data(location_state):
-    geojson_path = f"src/data/geo_json_{location_state}.json".lower()
+    geojson_path = f"data/geo_json_{location_state}.json".lower()
     geojson_data = {"type": "FeatureCollection", "features": []}
 
     geojson_data = clean_invalid_values(geojson=geojson_data)
@@ -188,7 +188,7 @@ def get_map_components(
                     id="geojson-layer",
                     style=style_handle,  # apply style from JavaScript
                     # zoomToBounds=True,  # when true, zooms to bounds when data changes (e.g. on load)
-                    # zoomToBoundsOnClick=True,  # when true, zooms to bounds of feature (e.g. polygon) on click
+                    zoomToBoundsOnClick=True,  # when true, zooms to bounds of feature (e.g. polygon) on click
                     hoverStyle={"weight": 5, "color": "#666", "dashArray": ""},
                     hideout=dict(
                         colorscale=colorscale,
@@ -255,7 +255,6 @@ def generate_map(location=DEFAULT_PLACENAME, svi=DEFAULT_SVI_VARIABLE):
 
     # Create the map with POI markers and GeoJSON layer
     map_component = dl.Map(
-        id=f"map-{location}-{svi}",
         center=center,
         zoom=12,
         children=get_map_components(
