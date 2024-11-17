@@ -54,3 +54,4 @@ tzdata==2024.2
 urllib3==2.2.3
 Werkzeug==3.0.6
 zipp==3.21.0
+orjson=3.10.11

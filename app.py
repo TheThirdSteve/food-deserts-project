@@ -15,9 +15,6 @@ from dash_extensions.javascript import assign
 import warnings
 import requests
 
-first_time = True
-DEFAULT_PLACENAME = "Denver, CO"
-DEFAULT_SVI_VARIABLE = "E_POV150"
 
 # Adjust working directory and sys.path
 current_dir = os.getcwd().split("/")[-1]
@@ -35,6 +32,15 @@ from src.poi_queries import (
 )
 
 
+first_time = True
+DEFAULT_PLACENAME = "Denver, CO"
+DEFAULT_SVI_VARIABLE = "E_POV150"
+LEAFLET_CRS = 3857
+# Dash app setup
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+server = app.server
+
+
 def clean_invalid_values(geojson, invalid_value=-999):
     for record in geojson["features"]:
         for key in record["properties"].keys():
@@ -45,20 +51,23 @@ def clean_invalid_values(geojson, invalid_value=-999):
 
 # Load GeoJSON data from file
 def create_geo_json_data(location_state):
-    geojson_path = f"src/data/geo_json_{location_state}.json".lower()
-    geojson_data = {"type": "FeatureCollection", "features": []}
-
-    geojson_data = clean_invalid_values(geojson=geojson_data)
-
-    with open(geojson_path) as f:
+    filename = f"geo_json_{location_state.lower()}.json"
+    primary_path = os.path.join("data", filename)
+    fallback_path = os.path.join("src", "data", filename)
+    for file_path in [primary_path, fallback_path]:
         try:
-            data = json.load(f)
-        except FileNotFoundError as e:
-            warnings.warn(f"{e}")
-            data = json.load(rf"src/{f}")
-        geojson_data["features"].extend(data["features"])
+            with open(file_path) as f:
+                geojson_data = json.load(f)
+                # Clean invalid values after loading
+                return clean_invalid_values(geojson_data)
+        except FileNotFoundError:
+            continue
 
-    return geojson_data
+    # If we get here, neither path worked
+    raise FileNotFoundError(
+        f"Could not find GeoJSON file for state {location_state} "
+        f"in either {primary_path} or {fallback_path}"
+    )
 
 
 # Helper to convert POI GeoDataFrame to leaflet markers
@@ -165,111 +174,253 @@ def generate_style_handle(svi, geojson_data):
     return style_handle, colorscale, classes, style, colorbar
 
 
-def get_map_components(
-    grocery_markers, convenience_markers, lowquality_markers, svi, geo_json_data
-):
+# def get_map_components(
+#     grocery_markers, convenience_markers, lowquality_markers, svi, geo_json_data
+# ):
 
-    return_value = [
-        dl.TileLayer(
-            url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-            maxZoom=20,
-        ),
-    ]
+#     return_value = [
+#         dl.TileLayer(
+#             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+#             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+#             maxZoom=20,
+#         ),
+#     ]
 
-    if svi != "None":
-        style_handle, colorscale, classes, style, colorbar = generate_style_handle(
-            svi, geo_json_data
-        )
-        return_value.append(
-            dl.Pane(
-                dl.GeoJSON(
-                    data=geo_json_data,
-                    id="geojson-layer",
-                    style=style_handle,  # apply style from JavaScript
-                    # zoomToBounds=True,  # when true, zooms to bounds when data changes (e.g. on load)
-                    # zoomToBoundsOnClick=True,  # when true, zooms to bounds of feature (e.g. polygon) on click
-                    hoverStyle={"weight": 5, "color": "#666", "dashArray": ""},
-                    hideout=dict(
-                        colorscale=colorscale,
-                        classes=classes,
-                        style=style,
-                        colorProp=svi,
-                    ),
-                ),
-                name="middle",
-            )
-        )
+#     if svi != "None":
+#         style_handle, colorscale, classes, style, colorbar = generate_style_handle(
+#             svi, geo_json_data
+#         )
+#         return_value.append(
+#             dl.Pane(
+#                 dl.GeoJSON(
+#                     data=geo_json_data,
+#                     id="geojson-layer",
+#                     style=style_handle,  # apply style from JavaScript
+#                     # zoomToBounds=True,  # when true, zooms to bounds when data changes (e.g. on load)
+#                     # zoomToBoundsOnClick=True,  # when true, zooms to bounds of feature (e.g. polygon) on click
+#                     hoverStyle={"weight": 5, "color": "#666", "dashArray": ""},
+#                     hideout=dict(
+#                         colorscale=colorscale,
+#                         classes=classes,
+#                         style=style,
+#                         colorProp=svi,
+#                     ),
+#                 ),
+#                 name="middle",
+#             )
+#         )
 
-        return_value.append(colorbar)
+#         return_value.append(colorbar)
 
-    return_value.append(
-        dl.Pane(
-            dl.LayersControl(
-                [
-                    dl.Overlay(
-                        dl.LayerGroup(grocery_markers), name="Groceries", checked=True
-                    ),
-                    dl.Overlay(
-                        dl.LayerGroup(convenience_markers),
-                        name="Convenience",
-                        checked=True,
-                    ),
-                    dl.Overlay(
-                        dl.LayerGroup(lowquality_markers),
-                        name="Low-quality",
-                        checked=True,
-                    ),
-                ]
-            ),
-            name="upper",
-        )
-    )
+#     return_value.append(
+#         dl.Pane(
+#             dl.LayersControl(
+#                 [
+#                     dl.Overlay(
+#                         dl.LayerGroup(grocery_markers), name="Groceries", checked=True
+#                     ),
+#                     dl.Overlay(
+#                         dl.LayerGroup(convenience_markers),
+#                         name="Convenience (General Stores, and Convenience Stores)",
+#                         checked=True,
+#                     ),
+#                     dl.Overlay(
+#                         dl.LayerGroup(lowquality_markers),
+#                         name="Low-quality (Fast-Food and Gas Stations)",
+#                         checked=True,
+#                     ),
+#                 ]
+#             ),
+#             name="upper",
+#         )
+#     )
 
-    return return_value
+#     return return_value
 
 
-# Function to generate a Dash Leaflet map with GeoJSON color scheme
-def generate_map(location=DEFAULT_PLACENAME, svi=DEFAULT_SVI_VARIABLE):
-    # Set map center based on selected location
-
-    center = ox.geocode(location)  # default to Denver, CO coordinates
-
-    grocery = groceries_from_placename(location, centroids_only=True)
-    convenience = convenience_from_placename(location, centroids_only=True)
-    lowquality = lowquality_from_placename(location, centroids_only=True)
-
-    location_state = find_state(center)
-    geo_json_data = create_geo_json_data(location_state)
-
-    # Create marker layers
-    grocery_markers = poi_to_markers(grocery, color="#4daf4a", radius=10)
-
-    # grocery_markers = [
-    # dl.Marker(position=(row.geometry.y, row.geometry.x), children=[
-    #     dl.Popup(row.label)
-    # ]) for idx, row in grocery.iterrows()]
-
-    convenience_markers = poi_to_markers(convenience, color="#377eb8", radius=7)
-    lowquality_markers = poi_to_markers(lowquality, color="#e41a1c", radius=5)
-
-    # Create the map with POI markers and GeoJSON layer
-    map_component = dl.Map(
-        id=f"map-{location}-{svi}",
-        center=center,
+def init_map():
+    return dl.Map(
+        id="map",
         zoom=12,
-        children=get_map_components(
-            grocery_markers, convenience_markers, lowquality_markers, svi, geo_json_data
-        ),
+        center=ox.geocode(DEFAULT_PLACENAME),
         style={"width": "100%", "height": "600px"},
+        children=[
+            # Base tile layer (bottom)
+            dl.Pane(
+                dl.TileLayer(
+                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                ),
+                name="tile-pane",
+                style={"zIndex": 100},
+            ),
+            # Choropleth layer
+            dl.Pane(
+                dl.LayerGroup(id="choropleth-layer"),
+                name="choropleth-pane",
+                style={"zIndex": 200},
+            ),
+            # search area highlight
+            dl.Pane(
+                dl.LayerGroup(id="boundary-layer"),
+                name="boundary-pane",
+                style={"zIndex": 250},
+            ),
+            # layer control and poi layers
+            dl.Pane(
+                name="store-layers",
+                children=dl.LayersControl(
+                    [
+                        dl.Overlay(
+                            dl.Pane(
+                                dl.LayerGroup(id="grocery-layer"),
+                                name="grocery-pane",
+                                style={"zIndex": 600},
+                            ),
+                            name="grocery-overlay",
+                            checked=True,
+                        ),
+                        dl.Overlay(
+                            dl.Pane(
+                                dl.LayerGroup(id="convenience-layer"),
+                                name="convenience-pane",
+                                style={"zIndex": 500},
+                            ),
+                            name="convenience-overlay",
+                            checked=True,
+                        ),
+                        dl.Overlay(
+                            dl.Pane(
+                                dl.LayerGroup(id="lowquality-layer"),
+                                name="lowquality-pane",
+                                style={"zIndex": 400},
+                            ),
+                            name="lowquality-overlay",
+                            checked=True,
+                        ),
+                    ]
+                ),
+                style={"zIndex": 9998},
+            ),
+            # Colorbar (overlay)
+            dl.Pane(
+                html.Div(id="colorbar-container"),
+                name="colorbar-pane",
+                style={"zIndex": 9999},
+            ),
+        ],
     )
 
-    return map_component
+
+@app.callback(
+    Output("map", "viewport"),
+    Output("boundary-layer", "children"),
+    Output("failed-search", "is_open"),
+    Output("failed-search", "children"),
+    Input("location-input", "n_submit"),
+    Input("SVI-val-dropdown", "value"),
+    State("location-input", "value"),
+)
+def fly_to_place(n_submit, _, placename):
+    if not n_submit:
+        placename = DEFAULT_PLACENAME
+
+    try:
+        gdf = ox.geocode_to_gdf(placename)
+
+    except Exception as e:
+        print(f"Error geocoding {placename}: {e}")
+        # Fallback to Denver coordinates if geocoding fails
+        return (
+            dash.no_update,
+            dash.no_update,
+            True,
+            f"Location lookup unsuccessful: {e}",
+        )
+
+    bounds = gdf.total_bounds
+    bounds = bounds[[1, 0, 3, 2]].reshape(2, 2).tolist()
+    geo_json_data = json.loads(gdf.geometry.to_json())
+
+    boundary_style = dict(
+        weight=2, opacity=1, color="black", fillOpacity=0, dashArray="5"
+    )
+
+    boundary = dl.GeoJSON(
+        data=geo_json_data,
+        style=boundary_style,
+        hoverStyle={"weight": 3, "color": "#666"},
+    )
+
+    return {"bounds": bounds}, boundary, False, ""
 
 
-# Dash app setup
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
-server = app.server
+@app.callback(
+    Output("grocery-layer", "children"),
+    Output("convenience-layer", "children"),
+    Output("lowquality-layer", "children"),
+    Input("location-input", "n_submit"),
+    Input("SVI-val-dropdown", "value"),
+    Input("failed-search", "is_open"),
+    State("location-input", "value"),
+)
+def update_map_markers(n_submit, _, failed_search, placename):
+    # throwaway the svi value, but use the trigger
+    if failed_search:
+        return dash.no_update, dash.no_update, dash.no_update
+    grocery = groceries_from_placename(placename, centroids_only=True)
+    convenience = convenience_from_placename(placename, centroids_only=True)
+    lowquality = lowquality_from_placename(placename, centroids_only=True)
+
+    return (
+        poi_to_markers(grocery, color="#4daf4a", radius=10),
+        poi_to_markers(convenience, color="#377eb8", radius=7),
+        poi_to_markers(lowquality, color="#e41a1c", radius=5),
+    )
+
+
+@app.callback(
+    Output("choropleth-layer", "children"),
+    Output("colorbar-container", "children"),
+    Input("location-input", "n_submit"),
+    Input("SVI-val-dropdown", "value"),
+    Input("failed-search", "is_open"),
+    State("location-input", "value"),
+)
+def update_choropleth(n_submit, svi_variable, failed_search, placename):
+    if failed_search:
+        return dash.no_update, dash.no_update
+    if not n_submit:
+        placename = DEFAULT_PLACENAME
+    if svi_variable == "None":
+        return [], []
+
+    # Get center and state
+    grocery = groceries_from_placename(placename, centroids_only=True)
+    center = find_center_of_location(grocery)
+    location_state = find_state(center)
+
+    # Create choropleth
+    geo_json_data = create_geo_json_data(location_state)
+    style_handle, colorscale, classes, style, colorbar = generate_style_handle(
+        svi_variable, geo_json_data
+    )
+    # mapping geojson to styler to fill in the choropleth
+    choropleth = dl.GeoJSON(
+        data=geo_json_data,
+        style=style_handle,
+        zoomToBoundsOnClick=True,
+        hoverStyle={"weight": 5, "color": "#666", "dashArray": ""},
+        hideout=dict(
+            colorscale=colorscale,
+            classes=classes,
+            style=style,
+            colorProp=svi_variable,
+        ),
+    )
+
+    return choropleth, colorbar
+
 
 # App layout with dropdown to select location and map
 app.layout = dbc.Container(
@@ -299,18 +450,6 @@ app.layout = dbc.Container(
                                     className="mb-4",
                                     style=dict(width="100%"),
                                 ),
-                                # dcc.Dropdown(
-                                #     id="location-dropdown",
-                                #     options=[
-                                #     {'label': 'Albany, NY', 'value': 'Albany, NY'},
-                                #     {'label': 'New York, NY', 'value': 'New York, NY'},
-                                #     {'label': 'Denver, CO', 'value': 'Denver, CO'},
-                                #     {'label': 'Portland, ME', 'value': 'Portland, ME'},
-                                #     ],
-                                #     value="Denver, CO",
-                                #     className="mb-4",
-                                #     style=dict(width='100%')
-                                # )
                             ],
                         ),
                         html.Div(
@@ -359,123 +498,20 @@ app.layout = dbc.Container(
                 )
             )
         ),
-        dbc.Row(dbc.Col(html.Div(id="map-container"))),
+        dbc.Row(
+            dbc.Col(
+                html.Div(
+                    dbc.Alert(
+                        "alert", id="failed-search", color="danger", is_open=False
+                    )
+                ),
+                width=6,
+            )
+        ),
+        dbc.Row(dbc.Col(html.Div(id="map-container", children=init_map()))),
     ],
     fluid=True,
 )
-
-
-def create_map():
-    return dl.Map(
-        id="map",
-        center=[39.7392, -104.9903],  # Default Denver coordinates
-        zoom=12,
-        style={"width": "100%", "height": "600px"},
-        children=[
-            dl.TileLayer(
-                url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-            ),
-            dl.LayerGroup(id="grocery-layer"),
-            dl.LayerGroup(id="convenience-layer"),
-            dl.LayerGroup(id="lowquality-layer"),
-            dl.LayerGroup(id="choropleth-layer"),
-            html.Div(id="colorbar-container"),
-        ],
-    )
-
-
-def init_map():
-    return dl.Map(
-        id="map",
-        center=[39.7392, -104.9903],  # Default Denver coordinates
-        zoom=12,
-        style={"width": "100%", "height": "600px"},
-        children=[
-            dl.TileLayer(
-                url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-            ),
-            dl.LayerGroup(id="grocery-layer"),
-            dl.LayerGroup(id="convenience-layer"),
-            dl.LayerGroup(id="lowquality-layer"),
-            dl.LayerGroup(id="choropleth-layer"),
-            html.Div(id="colorbar-container"),
-        ],
-    )
-
-
-# def init_choro_layer():
-
-
-@app.callback(
-    Output("grocery-layer", "children"),
-    Output("convenience-layer", "children"),
-    Output("lowquality-layer", "children"),
-    Input("location-input", "n_submit"),
-    State("location-input", "value"),
-)
-def update_map_markers(n_submit, placename):
-    if not n_submit:
-        return dash.no_update
-    grocery = groceries_from_placename(placename, centroids_only=True)
-    convenience = convenience_from_placename(placename, centroids_only=True)
-    lowquality = lowquality_from_placename(placename, centroids_only=True)
-
-    return (
-        poi_to_markers(grocery, color="#4daf4a", radius=10),
-        poi_to_markers(convenience, color="#377eb8", radius=7),
-        poi_to_markers(lowquality, color="#e41a1c", radius=5),
-    )
-
-
-@app.callback(
-    Output("choropleth-layer", "children"),
-    Output("colorbar-container", "children"),
-    Input("location-input", "n_submit"),
-    Input("SVI-val-dropdown", "value"),
-    State("location-input", "value"),
-)
-def update_choropleth(n_submit, svi_variable, placename):
-    if (not n_submit and placename != "Denver, CO") or svi_variable == "None":
-        return dash.no_update, dash.no_update
-
-    # Get center and state
-    grocery = groceries_from_placename(placename, centroids_only=True)
-    center = find_center_of_location(grocery)
-    location_state = find_state(center)
-
-    # Create choropleth
-    geo_json_data = create_geo_json_data(location_state)
-    style_handle, colorscale, classes, style, colorbar = generate_style_handle(
-        svi_variable, geo_json_data
-    )
-
-    choropleth = dl.GeoJSON(
-        data=geo_json_data,
-        style=style_handle,
-        zoomToBoundsOnClick=True,
-        hoverStyle={"weight": 5, "color": "#666", "dashArray": ""},
-        hideout=dict(
-            colorscale=colorscale,
-            classes=classes,
-            style=style,
-            colorProp=svi_variable,
-        ),
-    )
-
-    return choropleth, colorbar
-
-
-# Callback to update the map based on selected location
-@app.callback(
-    Output("map-container", "children"),
-    Input("location-input", "n_submit"),
-    State("location-input", "value"),
-    Input("SVI-val-dropdown", "value"),
-)
-def update_map(n_submit, location, svi):
-    if n_submit or location == "Denver, CO":
-        return generate_map(location, svi)
-    return dash.no_update
 
 
 # Run the app
