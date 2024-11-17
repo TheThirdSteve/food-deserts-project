@@ -40,7 +40,7 @@ def clean_invalid_values(geojson, invalid_value=-999):
 
 # Load GeoJSON data from file
 def create_geo_json_data(location_state):
-    geojson_path = f"data/geo_json_{location_state}.json"
+    geojson_path = f"data/geo_json_{location_state}.json".lower()
     geojson_data = {"type": "FeatureCollection", "features": []}
 
     geojson_data = clean_invalid_values(geojson=geojson_data)
@@ -80,13 +80,14 @@ def find_center_of_location(grocery):
     center = [coordinates.y.values[0], coordinates.x.values[0]]
     return center
 
+
 def find_state(center):
     url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={center[0]}&lon={center[1]}&zoom=10&addressdetails=1"
     response = requests.get(url)
     data = response.json()
-    address = data.get('address', {})
-    state_code = address.get('ISO3166-2-lvl4', '').split("-")[-1]
- 
+    address = data.get("address", {})
+    state_code = address.get("ISO3166-2-lvl4", "").split("-")[-1]
+
     return state_code
 
 
@@ -159,7 +160,9 @@ def generate_style_handle(svi, geojson_data):
     return style_handle, colorscale, classes, style, colorbar
 
 
-def get_map_components(grocery_markers, convenience_markers, lowquality_markers, svi, geo_json_data):
+def get_map_components(
+    grocery_markers, convenience_markers, lowquality_markers, svi, geo_json_data
+):
 
     return_value = [
         dl.TileLayer(
@@ -170,7 +173,9 @@ def get_map_components(grocery_markers, convenience_markers, lowquality_markers,
     ]
 
     if svi != "None":
-        style_handle, colorscale, classes, style, colorbar = generate_style_handle(svi, geo_json_data)
+        style_handle, colorscale, classes, style, colorbar = generate_style_handle(
+            svi, geo_json_data
+        )
         return_value.append(
             dl.Pane(
                 dl.GeoJSON(
@@ -230,7 +235,6 @@ def generate_map(location="Denver, CO", svi="E_POV150"):
 
     if location != "Denver, CO":
         center = find_center_of_location(grocery)
-
 
     location_state = find_state(center)
     geo_json_data = create_geo_json_data(location_state)
@@ -356,6 +360,7 @@ app.layout = dbc.Container(
     fluid=True,
 )
 
+
 # Callback to update the map based on selected location
 @app.callback(
     Output("map-container", "children"),
@@ -367,7 +372,6 @@ def update_map(n_submit, location, svi):
     if n_submit or location == "Denver, CO":
         return generate_map(location, svi)
     return dash.no_update
-
 
 
 # Run the app
