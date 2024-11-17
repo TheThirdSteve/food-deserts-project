@@ -460,7 +460,7 @@ app.layout = dbc.Container(
                                     id="SVI-val-dropdown",
                                     options=[
                                         {
-                                            "label": "E_POV150 - Percentage of Population Below 150% of Poverty Level",
+                                            "label": "E_POV150 - Population Below 150% of Poverty Level",
                                             "value": "E_POV150",
                                         },
                                         {
