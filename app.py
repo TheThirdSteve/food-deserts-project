@@ -509,8 +509,37 @@ app.layout = dbc.Container(
             )
         ),
         dbc.Row(dbc.Col(html.Div(id="map-container", children=init_map()))),
+        dbc.Row([
+            dbc.Col(
+                html.Div([
+                dbc.Stack([
+                    html.Div('Welcome. This is a visual representation of food access across the United States. '),
+                    html.Div("If you enter a location in the left search bar, the map will search for food resources in the area selected."),
+                    html.Div('The types of food resources searched are:'),
+                    html.Div('- Grocery Stores - large green dots'),
+                    html.Div('- Convenience Stores - mid-size blue dots'),
+                    html.Div('- Fast Food - small red dots'),
+                    html.Div("These food resource types can be toggled from the layer selector on the top right corner of the map"),
+                    html.Div("When you enter a region, a dotted outline will show the boundary of the area.  This is the area that's being queried for food resources."),
+                    ],
+                    )
+                ]),
+            ),
+            dbc.Col(
+                html.Div([
+                dbc.Stack([
+                    html.Div("On the right hand side, CDC's Social Vulnerability Index (SVI) overlays can be selected."),
+                    html.Div('Selecting one of these variables will create a heatmap of the census tracts in the area selected.'),
+                    html.Div("\n"),
+                    html.Div("We hope the tool proves useful for studying food accessibility.")
+                ])
+                ])
+            )
+        ]
+        ),
     ],
     fluid=True,
+ 
 )
 
 
