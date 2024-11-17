@@ -40,7 +40,7 @@ def clean_invalid_values(geojson, invalid_value=-999):
 
 # Load GeoJSON data from file
 def create_geo_json_data(location_state):
-    geojson_path = f"data/geo_json/geo_json_{location_state}.json"
+    geojson_path = f"data/geo_json_{location_state}.json"
     geojson_data = {"type": "FeatureCollection", "features": []}
 
     geojson_data = clean_invalid_values(geojson=geojson_data)
