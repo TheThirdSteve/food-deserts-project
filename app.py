@@ -183,7 +183,7 @@ def get_map_components(
                     id="geojson-layer",
                     style=style_handle,  # apply style from JavaScript
                     # zoomToBounds=True,  # when true, zooms to bounds when data changes (e.g. on load)
-                    zoomToBoundsOnClick=True,  # when true, zooms to bounds of feature (e.g. polygon) on click
+                    # zoomToBoundsOnClick=True,  # when true, zooms to bounds of feature (e.g. polygon) on click
                     hoverStyle={"weight": 5, "color": "#666", "dashArray": ""},
                     hideout=dict(
                         colorscale=colorscale,
@@ -252,6 +252,7 @@ def generate_map(location="Denver, CO", svi="E_POV150"):
 
     # Create the map with POI markers and GeoJSON layer
     map_component = dl.Map(
+        id=f"map-{location}-{svi}",
         center=center,
         zoom=12,
         children=get_map_components(
