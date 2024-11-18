@@ -349,6 +349,7 @@ def fly_to_place(n_submit, _, placename):
     boundary = dl.GeoJSON(
         data=geo_json_data,
         style=boundary_style,
+        interactive=False,
         hoverStyle={"weight": 3, "color": "#666"},
     )
 
