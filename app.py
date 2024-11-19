@@ -420,10 +420,6 @@ app.layout = dbc.Container(
                                             "value": "E_LIMENG",
                                         },
                                         {
-                                            "label": "AREA_SQMI - Area in Square Miles",
-                                            "value": "AREA_SQMI",
-                                        },
-                                        {
                                             "label": "E_MOBILE - Mobile Homes",
                                             "value": "E_MOBILE",
                                         },
