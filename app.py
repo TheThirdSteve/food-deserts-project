@@ -500,10 +500,15 @@ app.layout = dbc.Container(
                                     html.Div(
                                         "Selecting one of these variables will create a heatmap of the census tracts in the area selected."
                                     ),
-                                    html.Div("\n"),
+                                    html.P(),
                                     html.Div(
                                         "We hope the tool proves useful for studying food accessibility."
                                     ),
+                                    html.P(),
+                                    html.Div(
+                                        "If you would like to help improve this tool, please follow the link below for a brief survey:"
+                                    ),
+                                    html.A("See the Survey Here", href='https://forms.gle/apVNSr65aas9Y2zv6', target='_blank')
                                 ]
                             )
                         ]
