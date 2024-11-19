@@ -50,16 +50,19 @@ def clean_invalid_values(geojson, invalid_value=-999):
 
 
 # Load GeoJSON data from file
-def create_geo_json_data(location_state):
+def create_geo_json_data(location_state, gdf=False):
     filename = f"geo_json_{location_state.lower()}.json"
     primary_path = os.path.join("data", filename)
     fallback_path = os.path.join("src", "data", filename)
     for file_path in [primary_path, fallback_path]:
         try:
+            if gdf:
+                return gpd.from_file(file_path)
             with open(file_path) as f:
                 geojson_data = json.load(f)
                 # Clean invalid values after loading
                 return clean_invalid_values(geojson_data)
+
         except FileNotFoundError:
             continue
 
@@ -172,70 +175,6 @@ def generate_style_handle(svi, geojson_data):
     )
 
     return style_handle, colorscale, classes, style, colorbar
-
-
-# def get_map_components(
-#     grocery_markers, convenience_markers, lowquality_markers, svi, geo_json_data
-# ):
-
-#     return_value = [
-#         dl.TileLayer(
-#             url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-#             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
-#             maxZoom=20,
-#         ),
-#     ]
-
-#     if svi != "None":
-#         style_handle, colorscale, classes, style, colorbar = generate_style_handle(
-#             svi, geo_json_data
-#         )
-#         return_value.append(
-#             dl.Pane(
-#                 dl.GeoJSON(
-#                     data=geo_json_data,
-#                     id="geojson-layer",
-#                     style=style_handle,  # apply style from JavaScript
-#                     # zoomToBounds=True,  # when true, zooms to bounds when data changes (e.g. on load)
-#                     # zoomToBoundsOnClick=True,  # when true, zooms to bounds of feature (e.g. polygon) on click
-#                     hoverStyle={"weight": 5, "color": "#666", "dashArray": ""},
-#                     hideout=dict(
-#                         colorscale=colorscale,
-#                         classes=classes,
-#                         style=style,
-#                         colorProp=svi,
-#                     ),
-#                 ),
-#                 name="middle",
-#             )
-#         )
-
-#         return_value.append(colorbar)
-
-#     return_value.append(
-#         dl.Pane(
-#             dl.LayersControl(
-#                 [
-#                     dl.Overlay(
-#                         dl.LayerGroup(grocery_markers), name="Groceries", checked=True
-#                     ),
-#                     dl.Overlay(
-#                         dl.LayerGroup(convenience_markers),
-#                         name="Convenience (General Stores, and Convenience Stores)",
-#                         checked=True,
-#                     ),
-#                     dl.Overlay(
-#                         dl.LayerGroup(lowquality_markers),
-#                         name="Low-quality (Fast-Food and Gas Stations)",
-#                         checked=True,
-#                     ),
-#                 ]
-#             ),
-#             name="upper",
-#         )
-#     )
-
-#     return return_value
 
 
 def init_map():
@@ -369,9 +308,13 @@ def update_map_markers(n_submit, _, failed_search, placename):
     # throwaway the svi value, but use the trigger
     if failed_search:
         return dash.no_update, dash.no_update, dash.no_update
-    grocery = groceries_from_placename(placename, centroids_only=True)
-    convenience = convenience_from_placename(placename, centroids_only=True)
-    lowquality = lowquality_from_placename(placename, centroids_only=True)
+    try:
+        grocery = groceries_from_placename(placename, centroids_only=True)
+        convenience = convenience_from_placename(placename, centroids_only=True)
+        lowquality = lowquality_from_placename(placename, centroids_only=True)
+    except ox._errors.InsufficientResponseError as e:
+        print(e)
+        return dash.no_update, dash.no_update, dash.no_update
 
     return (
         poi_to_markers(grocery, color="#4daf4a", radius=10),
@@ -386,23 +329,27 @@ def update_map_markers(n_submit, _, failed_search, placename):
     Input("location-input", "n_submit"),
     Input("SVI-val-dropdown", "value"),
     Input("failed-search", "is_open"),
+    Input("map", "viewport"),
     State("location-input", "value"),
 )
-def update_choropleth(n_submit, svi_variable, failed_search, placename):
+def update_choropleth(n_submit, svi_variable, failed_search, viewport, _):
     if failed_search:
         return dash.no_update, dash.no_update
-    if not n_submit:
-        placename = DEFAULT_PLACENAME
+
     if svi_variable == "None":
         return [], []
 
+    # SVI update is now triggered by change in viewport
+    bounds = np.array(viewport["bounds"])
+    center = bounds.mean(axis=0)
+
     # Get center and state
-    grocery = groceries_from_placename(placename, centroids_only=True)
-    center = find_center_of_location(grocery)
+
     location_state = find_state(center)
 
     # Create choropleth
     geo_json_data = create_geo_json_data(location_state)
+
     style_handle, colorscale, classes, style, colorbar = generate_style_handle(
         svi_variable, geo_json_data
     )
@@ -510,37 +457,62 @@ app.layout = dbc.Container(
             )
         ),
         dbc.Row(dbc.Col(html.Div(id="map-container", children=init_map()))),
-        dbc.Row([
-            dbc.Col(
-                html.Div([
-                dbc.Stack([
-                    html.Div('Welcome. This is a visual representation of food access across the United States. '),
-                    html.Div("If you enter a location in the left search bar, the map will search for food resources in the area selected."),
-                    html.Div('The types of food resources searched are:'),
-                    html.Div('- Grocery Stores - large green dots'),
-                    html.Div('- Convenience Stores - mid-size blue dots'),
-                    html.Div('- Fast Food - small red dots'),
-                    html.Div("These food resource types can be toggled from the layer selector on the top right corner of the map"),
-                    html.Div("When you enter a region, a dotted outline will show the boundary of the area.  This is the area that's being queried for food resources."),
-                    ],
+        dbc.Row(
+            [
+                dbc.Col(
+                    html.Div(
+                        [
+                            dbc.Stack(
+                                [
+                                    html.Div(
+                                        "Welcome. This is a visual representation of food access across the United States. "
+                                    ),
+                                    html.Div(
+                                        "If you enter a location in the left search bar, the map will search for food resources in the area selected."
+                                    ),
+                                    html.Div(
+                                        "The types of food resources searched are:"
+                                    ),
+                                    html.Div("- Grocery Stores - large green dots"),
+                                    html.Div(
+                                        "- Convenience Stores - mid-size blue dots"
+                                    ),
+                                    html.Div("- Fast Food - small red dots"),
+                                    html.Div(
+                                        "These food resource types can be toggled from the layer selector on the top right corner of the map"
+                                    ),
+                                    html.Div(
+                                        "When you enter a region, a dotted outline will show the boundary of the area.  This is the area that's being queried for food resources."
+                                    ),
+                                ],
+                            )
+                        ]
+                    ),
+                ),
+                dbc.Col(
+                    html.Div(
+                        [
+                            dbc.Stack(
+                                [
+                                    html.Div(
+                                        "On the right hand side, CDC's Social Vulnerability Index (SVI) overlays can be selected."
+                                    ),
+                                    html.Div(
+                                        "Selecting one of these variables will create a heatmap of the census tracts in the area selected."
+                                    ),
+                                    html.Div("\n"),
+                                    html.Div(
+                                        "We hope the tool proves useful for studying food accessibility."
+                                    ),
+                                ]
+                            )
+                        ]
                     )
-                ]),
-            ),
-            dbc.Col(
-                html.Div([
-                dbc.Stack([
-                    html.Div("On the right hand side, CDC's Social Vulnerability Index (SVI) overlays can be selected."),
-                    html.Div('Selecting one of these variables will create a heatmap of the census tracts in the area selected.'),
-                    html.Div("\n"),
-                    html.Div("We hope the tool proves useful for studying food accessibility.")
-                ])
-                ])
-            )
-        ]
+                ),
+            ]
         ),
     ],
     fluid=True,
- 
 )
 
 
