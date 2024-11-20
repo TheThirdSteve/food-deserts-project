@@ -125,17 +125,11 @@ def generate_style_handle(svi, geojson_data):
             if feature["properties"][svi] != -999
         ]
 
-    # properties_mean = sum(properties_values) / len(properties_values)
     properties_max = max(properties_values)
     properties_min = min(properties_values)
 
-    # classes = [0, 10, 20, 50, 100, 200, 500, 1000]
     classes = np.linspace(properties_min, properties_max, 10).tolist()
-    classes = [
-        num for num in np.linspace(properties_min, properties_max, 10).tolist()
-    ]
 
-    # classes = [properties_min + (properties_max - properties_min) * i / 9 for i in range(10)]
     colorscale = [
         "#FFEDA0",
         "#FED976",
@@ -210,14 +204,13 @@ def init_map():
                 name="choropleth-pane",
                 style={"zIndex": 250},
             ),
-            # search area highlight
+            # Search area highlight
             dl.Pane(
                 dl.LayerGroup(id="boundary-layer"),
                 name="boundary-pane",
                 style={"zIndex": 200},
-                
             ),
-            # layer control and poi layers
+            # POI layers
             dl.Pane(
                 name="store-layers",
                 children=dl.LayersControl(
@@ -234,7 +227,7 @@ def init_map():
                         dl.Overlay(
                             dl.Pane(
                                 dl.LayerGroup(id="convenience-layer"),
-                                name="Convenience Stores",
+                                name="convenience-pane",
                                 style={"zIndex": 500},
                             ),
                             name="Convenience Stores",
@@ -258,6 +251,91 @@ def init_map():
                 html.Div(id="colorbar-container"),
                 name="colorbar-pane",
                 style={"zIndex": 9999},
+            ),
+            # Legend
+            html.Div(
+                id="legend",
+                style={
+                    "position": "absolute",
+                    "bottom": "20px",
+                    "right": "10px",
+                    "zIndex": "400",
+                    "backgroundColor": "rgba(255, 255, 255, 0.7)",
+                    "padding": "5px",
+                    "border": "1px solid #ccc",
+                    "borderRadius": "5px",
+                },
+                children=[
+                    html.H5("Legend", style={"marginBottom": "10px", "fontSize": "14px"}),
+                    html.Div(
+                        style={
+                            "display": "flex",
+                            "flexDirection": "column",
+                            "alignItems": "flex-center",
+                            "gap": "5px",
+                        },
+                        children=[
+                            html.Div(
+                                style={
+                                    "display": "flex",
+                                    "alignItems": "flex-center",
+                                },
+                                children=[
+                                    html.Div(
+                                        style={
+                                            "width": "20px",
+                                            "height": "20px",
+                                            "backgroundColor": "#4daf4a",
+                                            "borderRadius": "50%",
+                                            "marginRight": "5px",
+                                        }
+                                    ),
+                                    html.Span("Grocery Stores"),
+                                ],
+                            ),
+                            html.Div(
+                                style={
+                                    "display": "flex",
+                                    "alignItems": "flex-center",
+                                },
+                                children=[
+                                    html.Div(
+                                        style={
+                                            "width": "15px",
+                                            "height": "15px",
+                                            "backgroundColor": "#377eb8",
+                                            "borderRadius": "50%",
+                                            "marginRight": "8px",
+                                            "marginLeft": "2px",
+                                            "marginTop": "2px",
+                                        }
+                                    ),
+                                    html.Span("Convenience Stores"),
+                                ],
+                            ),
+                            html.Div(
+                                style={
+                                    "display": "flex",
+                                    "alignItems": "flex-center",
+                                },
+                                children=[
+                                    html.Div(
+                                        style={
+                                            "width": "10px",
+                                            "height": "10px",
+                                            "backgroundColor": "#e41a1c",
+                                            "borderRadius": "50%",
+                                            "marginRight": "11px",
+                                            "marginLeft": "4px",
+                                            "marginTop": "3px",
+                                        }
+                                    ),
+                                    html.Span("Low Quality (Fast Food)"),
+                                ],
+                            ),
+                        ]
+                    ),
+                ],
             ),
         ],
     )
@@ -330,8 +408,8 @@ def update_map_markers(n_submit, _, failed_search, placename):
 
     return (
         poi_to_markers(grocery, color="#4daf4a", radius=10),
-        poi_to_markers(convenience, color="#377eb8", radius=7),
-        poi_to_markers(lowquality, color="#e41a1c", radius=5),
+        poi_to_markers(convenience, color="#377eb8", radius=6),
+        poi_to_markers(lowquality, color="#e41a1c", radius=3),
     )
 
 
@@ -456,8 +534,8 @@ app.layout = dbc.Container(
                                             "value": "RPL_THEME1",
                                         },
                                         {
-                                            "label": "Percentile Ranking for Household Characteristics Theme (RPL_THEME2)",
-                                            "value": "RPL_THEME2",
+                                            "label": "Overall Percentile Ranking (RPL_THEME5)",
+                                            "value": "RPL_THEME5",
                                         },
                                         {
                                             "label": "None - No Selection",
@@ -548,7 +626,7 @@ app.layout = dbc.Container(
     fluid=True,
 )
 @app.callback(
-    Output("info_tooltip", "children"), 
+    Output("info_tooltip", "children"),
     Input("geojson_data", "hoverData"),
 )
 def info_hover(feature):
