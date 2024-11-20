@@ -132,7 +132,7 @@ def generate_style_handle(svi, geojson_data):
     # classes = [0, 10, 20, 50, 100, 200, 500, 1000]
     classes = np.linspace(properties_min, properties_max, 10).tolist()
     classes = [
-        int(num) for num in np.linspace(properties_min, properties_max, 10).tolist()
+        num for num in np.linspace(properties_min, properties_max, 10).tolist()
     ]
 
     # classes = [properties_min + (properties_max - properties_min) * i / 9 for i in range(10)]
@@ -177,6 +177,17 @@ def generate_style_handle(svi, geojson_data):
     return style_handle, colorscale, classes, style, colorbar
 
 
+# create tooltip
+def get_info(feature=None):
+    header = [html.H4("US Population Density")]
+    if not feature:
+        return header + [html.P("Hover over a tract")]
+    return header + [html.B(feature["properties"]["E_TOTPOP"]), html.Br(),
+                     "{:.3f} TOTPOP".format(feature["properties"]["E_TOTPOP"]), html.Sup("2")]
+
+info = html.Div(children=get_info(), id="info_tooltip", className="info_tooltip",
+                style={"position": "absolute", "top": "400px", "right": "10px", "zIndex": "1000"})
+
 def init_map():
     return dl.Map(
         id="map",
@@ -197,13 +208,14 @@ def init_map():
             dl.Pane(
                 dl.LayerGroup(id="choropleth-layer"),
                 name="choropleth-pane",
-                style={"zIndex": 200},
+                style={"zIndex": 250},
             ),
             # search area highlight
             dl.Pane(
                 dl.LayerGroup(id="boundary-layer"),
                 name="boundary-pane",
-                style={"zIndex": 250},
+                style={"zIndex": 200},
+                
             ),
             # layer control and poi layers
             dl.Pane(
@@ -216,16 +228,16 @@ def init_map():
                                 name="grocery-pane",
                                 style={"zIndex": 600},
                             ),
-                            name="grocery-overlay",
+                            name="Grocery Stores",
                             checked=True,
                         ),
                         dl.Overlay(
                             dl.Pane(
                                 dl.LayerGroup(id="convenience-layer"),
-                                name="convenience-pane",
+                                name="Convenience Stores",
                                 style={"zIndex": 500},
                             ),
-                            name="convenience-overlay",
+                            name="Convenience Stores",
                             checked=True,
                         ),
                         dl.Overlay(
@@ -234,7 +246,7 @@ def init_map():
                                 name="lowquality-pane",
                                 style={"zIndex": 400},
                             ),
-                            name="lowquality-overlay",
+                            name="Low Quality (Fast Food)",
                             checked=True,
                         ),
                     ]
@@ -279,7 +291,7 @@ def fly_to_place(n_submit, _, placename):
 
     bounds = gdf.total_bounds
     bounds = bounds[[1, 0, 3, 2]].reshape(2, 2).tolist()
-    geo_json_data = json.loads(gdf.geometry.to_json())
+    geo_json_data = json.loads(gdf.geometry.boundary.to_json())
 
     boundary_style = dict(
         weight=2, opacity=1, color="black", fillOpacity=0, dashArray="5"
@@ -289,7 +301,7 @@ def fly_to_place(n_submit, _, placename):
         data=geo_json_data,
         style=boundary_style,
         interactive=False,
-        hoverStyle={"weight": 3, "color": "#666"},
+        hoverStyle={"weight": 5, "color": "#666"},
     )
 
     return {"bounds": bounds}, boundary, False, ""
@@ -344,7 +356,6 @@ def update_choropleth(n_submit, svi_variable, failed_search, viewport, _):
     center = bounds.mean(axis=0)
 
     # Get center and state
-
     location_state = find_state(center)
 
     # Create choropleth
@@ -365,6 +376,7 @@ def update_choropleth(n_submit, svi_variable, failed_search, viewport, _):
             style=style,
             colorProp=svi_variable,
         ),
+        id="geojson_data"
     )
 
     return choropleth, colorbar
@@ -408,24 +420,44 @@ app.layout = dbc.Container(
                                     id="SVI-val-dropdown",
                                     options=[
                                         {
-                                            "label": "E_POV150 - Population Below 150% of Poverty Level",
-                                            "value": "E_POV150",
-                                        },
-                                        {
-                                            "label": "E_TOTPOP - Total Population",
+                                            "label": "Total Population (E_TOTPOP)",
                                             "value": "E_TOTPOP",
                                         },
                                         {
-                                            "label": "E_LIMENG - English Language Proficiency",
+                                            "label": "Population Below 150% of Poverty Level (E_POV150)",
+                                            "value": "E_POV150",
+                                        },
+                                        {
+                                            "label": "No Health Insurance (E_UNINSUR)",
+                                            "value": "E_UNINSUR",
+                                        },
+                                        {
+                                            "label": "English Language Proficiency (E_LIMENG)",
                                             "value": "E_LIMENG",
                                         },
                                         {
-                                            "label": "E_MOBILE - Mobile Homes",
+                                            "label": "Racial & Ethnic Minority (E_MINRTY)",
+                                            "value": "E_MINRTY",
+                                        },
+                                        {
+                                            "label": "Mobile Homes (E_MOBILE)",
                                             "value": "E_MOBILE",
                                         },
                                         {
-                                            "label": "E_NOVEH - No Vehicles",
+                                            "label": "No Vehicles (E_NOVEH)",
                                             "value": "E_NOVEH",
+                                        },
+                                        {
+                                            "label": "National Percentile Persons Below 150% Poverty (EPL_POV150)",
+                                            "value": "EPL_POV150",
+                                        },
+                                        {
+                                            "label": "Percentile Ranking for Socioeconomic Status Theme (RPL_THEME1)",
+                                            "value": "RPL_THEME1",
+                                        },
+                                        {
+                                            "label": "Percentile Ranking for Household Characteristics Theme (RPL_THEME2)",
+                                            "value": "RPL_THEME2",
                                         },
                                         {
                                             "label": "None - No Selection",
@@ -453,7 +485,7 @@ app.layout = dbc.Container(
             )
         ),
         dbc.Row(dbc.Col(html.Div(id="map-container", children=init_map()))),
-        dbc.Row(
+        dbc.Row(id="map-description", children=
             [
                 dbc.Col(
                     html.Div(
@@ -473,7 +505,7 @@ app.layout = dbc.Container(
                                     html.Div(
                                         "- Convenience Stores - mid-size blue dots"
                                     ),
-                                    html.Div("- Fast Food - small red dots"),
+                                    html.Div("- Low Quality (Fast Food) - small red dots"),
                                     html.Div(
                                         "These food resource types can be toggled from the layer selector on the top right corner of the map"
                                     ),
@@ -515,7 +547,12 @@ app.layout = dbc.Container(
     ],
     fluid=True,
 )
-
+@app.callback(
+    Output("info_tooltip", "children"), 
+    Input("geojson_data", "hoverData"),
+)
+def info_hover(feature):
+    return get_info(feature)
 
 # Run the app
 if __name__ == "__main__":
