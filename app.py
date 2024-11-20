@@ -579,11 +579,11 @@ app.layout = dbc.Container(
                                     html.Div(
                                         "The types of food resources searched are:"
                                     ),
-                                    html.Div("- Grocery Stores - large green dots"),
-                                    html.Div(
-                                        "- Convenience Stores - mid-size blue dots"
+                                    html.Li("Grocery Stores - large green dots"),
+                                    html.Li(
+                                        "Convenience Stores - mid-size blue dots"
                                     ),
-                                    html.Div("- Low Quality (Fast Food) - small red dots"),
+                                    html.Li("Low Quality (Fast Food) - small red dots"),
                                     html.Div(
                                         "These food resource types can be toggled from the layer selector on the top right corner of the map"
                                     ),
