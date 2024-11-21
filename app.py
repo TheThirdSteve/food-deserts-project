@@ -10,6 +10,7 @@ from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 import json
 from dash_extensions.javascript import assign, arrow_function
+import geopandas as gpd
 
 # from geopy.geocoders import Nominatim
 import warnings
@@ -173,23 +174,32 @@ def generate_style_handle(svi, geojson_data):
 
 # create tooltip
 def get_info(feature=None, svi_variable="E_TOTPOP"):
-    #header = [html.B("SVI Hover Display", style={"fontSize":"14px"}), html.Br()]
+    # header = [html.B("SVI Hover Display", style={"fontSize":"14px"}), html.Br()]
     if not feature:
-        return [html.B(svi_variable, style={"fontSize":"14px"}), html.Br(), "--"]
-    return [html.B(svi_variable, style={"fontSize":"14px"}), html.Br(), 
-                     feature["properties"][svi_variable]]
+        return [html.B(svi_variable, style={"fontSize": "14px"}), html.Br(), "--"]
+    return [
+        html.B(svi_variable, style={"fontSize": "14px"}),
+        html.Br(),
+        feature["properties"][svi_variable],
+    ]
 
-info = html.Div(children=get_info(), id="info_tooltip", className="info_tooltip",
-                style={
-                    "position": "absolute",
-                    "top": "575px",
-                    "right": "23px",
-                    "zIndex": "9000",
-                    "backgroundColor": "rgba(255, 255, 255, 0.7)",
-                    "padding": "5px",
-                    "border": "1px solid #ccc",
-                    "borderRadius": "5px",
-                })
+
+info = html.Div(
+    children=get_info(),
+    id="info_tooltip",
+    className="info_tooltip",
+    style={
+        "position": "absolute",
+        "top": "575px",
+        "right": "23px",
+        "zIndex": "9000",
+        "backgroundColor": "rgba(255, 255, 255, 0.7)",
+        "padding": "5px",
+        "border": "1px solid #ccc",
+        "borderRadius": "5px",
+    },
+)
+
 
 def init_map():
     return dl.Map(
@@ -275,7 +285,9 @@ def init_map():
                     "borderRadius": "5px",
                 },
                 children=[
-                    html.H5("Legend", style={"marginBottom": "10px", "fontSize": "14px"}),
+                    html.H5(
+                        "Legend", style={"marginBottom": "10px", "fontSize": "14px"}
+                    ),
                     html.Div(
                         style={
                             "display": "flex",
@@ -342,7 +354,7 @@ def init_map():
                                     html.Span("Low Quality (Fast Food)"),
                                 ],
                             ),
-                        ]
+                        ],
                     ),
                 ],
             ),
@@ -380,9 +392,14 @@ def fly_to_place(n_submit, _, placename):
     bounds = bounds[[1, 0, 3, 2]].reshape(2, 2).tolist()
     geo_json_data = json.loads(gdf.geometry.boundary.to_json())
 
-    boundary_style = dict(
-        weight=2, opacity=1, color="black", fillOpacity=0, dashArray="5"
-    )
+    boundary_style = {
+        "weight": 2,
+        "opacity": 1,
+        "color": "black",
+        "fillOpacity": 0,
+        "dashArray": "5",
+        "pointer-events": "none",
+    }
 
     boundary = dl.GeoJSON(
         data=geo_json_data,
@@ -451,7 +468,7 @@ def update_choropleth(n_submit, svi_variable, failed_search, viewport, _):
     style_handle, colorscale, classes, style, colorbar = generate_style_handle(
         svi_variable, geo_json_data
     )
-    # mapping geojson to styler to fill in the choropleth
+    # mapping geojson to styler to fills in the choropleth
     choropleth = dl.GeoJSON(
         data=geo_json_data,
         style=style_handle,
@@ -463,20 +480,105 @@ def update_choropleth(n_submit, svi_variable, failed_search, viewport, _):
             style=style,
             colorProp=svi_variable,
         ),
-        id="geojson_data"
+        id="geojson_data",
     )
 
     return choropleth, colorbar
 
 
+modal = html.Div(
+    [
+        dbc.Modal(
+            [
+                dbc.ModalHeader(
+                    dbc.ModalTitle("Welcome!"), class_name="bg-dark text-light"
+                ),
+                dbc.ModalBody(
+                    [
+                        html.P(
+                            [
+                                html.Br(),
+                                "This is a visual representation of food access across the United States. ",
+                                html.Br(),
+                                "We hope you can find interesting patterns of how food access and social indicators are related in your city",
+                                html.Br(),
+                            ]
+                        ),
+                        html.P(
+                            [
+                                html.B("What are SVI Variables?"),
+                                html.Br(),
+                                "The Center for Disease Control developed the Social Vulnerability Index (SVI) to better understand where disadvantaged populations live. There are many different SVI's measured by the CDC and we have provided a sample of them including:",
+                                html.Br(),
+                                html.Ul(
+                                    [
+                                        html.Li(
+                                            "E_TOTPOP: A simple count of the total population of a census tract"
+                                        ),
+                                        html.Li(
+                                            "E_POV150: The count of people in an area living below 150% of the poverty line"
+                                        ),
+                                        html.Li(
+                                            "E_UNINSR: The count of people in an area without health insurance"
+                                        ),
+                                        html.Li(
+                                            "E_LIMENG: The count of people in an area who speak English 'less than well'"
+                                        ),
+                                        html.Li(
+                                            "E_MINRTY: The count of people in an area who are non-white and non-Hispanic"
+                                        ),
+                                        html.Li(
+                                            "E_MOBILE: The count of people in an area who are living in mobile homes"
+                                        ),
+                                        html.Li(
+                                            "E_NOVEH: The count of people in an area without ownership of a vehicle"
+                                        ),
+                                        html.Li(
+                                            "EPL_POV150: The national percentile of people in an area living below 150% of the poverty line"
+                                        ),
+                                        html.Li(
+                                            "RPL_THEMES: This is an overall summary of all of the SVI's"
+                                        ),
+                                    ],
+                                    style={
+                                        "marginTop": "0.5rem",
+                                        "marginBottom": "0.5rem",
+                                        "paddingLeft": "2rem",
+                                    },
+                                ),
+                                "In general, higher SVI scores mean more socially vulnerable people live in an area.",
+                                html.Br(),
+                                "If you would like to learn more about the SVI variables, please refer to ",
+                                html.A(
+                                    "this CDC link.",
+                                    href="https://svi.cdc.gov/map/data/docs/SVI2022Documentation_5.17.2024.pdf",
+                                    target="_blank",
+                                ),
+                            ]
+                        ),
+                    ],
+                    class_name="bg-dark  text-light",
+                ),
+                dbc.ModalFooter(
+                    dbc.Button("Close", id="close", className="ms-auto", n_clicks=0),
+                    class_name="bg-dark  text-light",
+                ),
+            ],
+            id="modal",
+            scrollable=True,
+            size="lg",
+            centered=True,
+            is_open=True,
+        ),
+    ]
+)
+
+
 # App layout with dropdown to select location and map
 app.layout = dbc.Container(
     [
-        dbc.Row(
-            dbc.Col(
-                html.H1("Food Access Explorer", className="text-center mb-4")
-            )
-        ),
+        modal,
+        dbc.Row(dbc.Col(html.H1("Food Access Explorer", className="text-center mb-4"))),
         dbc.Row(
             dbc.Col(
                 html.Div(
@@ -543,8 +645,8 @@ app.layout = dbc.Container(
                                             "value": "RPL_THEME1",
                                         },
                                         {
-                                            "label": "Overall Percentile Ranking (RPL_THEME5)",
-                                            "value": "RPL_THEME5",
+                                            "label": "Overall Percentile Ranking (RPL_THEMES)",
+                                            "value": "RPL_THEMES",
                                         },
                                         {
                                             "label": "None - No Selection",
@@ -572,70 +674,11 @@ app.layout = dbc.Container(
             )
         ),
         dbc.Row(dbc.Col(html.Div(id="map-container", children=[init_map(), info]))),
-        dbc.Row(id="map-description", children=
-            [
-                dbc.Col(
-                    html.Div(
-                        [
-                            dbc.Stack(
-                                [
-                                    html.P([
-                                        html.B("Welcome!"), html.Br(),
-                                        "This is a visual representation of food access across the United States. ", html.Br(),
-                                        "We hope you can find interesting patterns of how food access and social indicators are related in your city", html.Br(),
-                                    ]
-                                    ),
-                                    html.P([
-                                        html.B("What are SVI Variables?"),html.Br(),
-                                        "The Center for Disease Control developed the Social Vulnerability Index (SVI) to better understand where disadvantaged populations live. There are many different SVI's measured by the CDC and we have provided a sample of them including:",html.Br(),
-                                        "   - E_TOTPOP: A simple count of the total population of a census tract", html.Br(),
-                                        "   - E_POV150: The count of people in an area living below 150% of the poverty line.", html.Br(),
-                                        "   - E_UNINSR: The count of people in an area without health insurance.", html.Br(),
-                                        "   - E_LIMENG: The count of people in an area who speak English 'less than well'.", html.Br(),
-                                        "   - E_MINRTY: The count of people in an area who are non-white and non-Hispanic.", html.Br(),
-                                        "   - E_MOBILE: The count of people in an area who are living in mobile homes.", html.Br(),
-                                        "   - E_NOVEH: The count of people in an area without ownership of a vehicle.", html.Br(),
-                                        "   - EPL_POV150: The national percentile of people in an area living below 150% of the poverty line.", html.Br(),
-                                        "   - RPL_THEME_5: This is an overall summary of all of the SVI's.", html.Br(), 
-                                        "In general, higher SVI scores mean more socially vulnerable people live in an area.", html.Br(),
-                                        "If you would like to learn more about the SVI variables, please refer to ", html.A("this CDC link.", href='https://svi.cdc.gov/map/data/docs/SVI2022Documentation_5.17.2024.pdf', target='_blank')
-                                    ]),
-                                ],
-                            )
-                        ]
-                    ),
-                ),
-                dbc.Col(
-                    html.Div(
-                        [
-                            dbc.Stack(
-                                [
-                                    html.P([html.B("How to Use This Tool:"), html.Br(),
-                                           "This map will search for food resources in the area entered in the search bar. This search will work for big cities (nicknames such as 'San Fran' and 'Philly' are OK!), parts of cities (Manhattan), suburban areas, counties (Montgomery, PA) and even small rural towns.",
-                                            ]),
-                                    html.P("Food resources can be toggled through the selector in the upper-right corner of the map."),
-                                    html.Div(
-                                        "Select the CDC's Social Vulnerability Index (SVI) overlays on the right side. Selecting one of these SVI's will create a heatmap of the census tracts in the area searched. Often, higher numbers on this scale (daker areas on the map) represent more vulnerable populations."
-                                    ),
-                                    html.P(),
-                                    html.Div(
-                                        "We hope this tool proves useful for studying food accessibility :)"
-                                    ),
-                                    html.P(),
-                                    html.Div(
-                                        "If you would like to help improve this tool, please follow the link below for a brief survey:"
-                                    ),
-                                    html.A("See the Survey Here", href='https://forms.gle/apVNSr65aas9Y2zv6', target='_blank')
-                                ]
-                            )
-                        ]
-                    )
-                ),
-            ]
-        ),
     ],
     fluid=True,
 )
+
+
 @app.callback(
     Output("info_tooltip", "children"),
     Input("geojson_data", "hoverData"),
@@ -643,6 +686,18 @@ app.layout = dbc.Container(
 )
 def info_hover(feature, svi_variable):
     return get_info(feature, svi_variable)
+
+
+@app.callback(
+    Output("modal", "is_open"),
+    [Input("open", "n_clicks"), Input("close", "n_clicks")],
+    [State("modal", "is_open")],
+)
+def toggle_modal(n1, n2, is_open):
+    if n1 or n2:
+        return not is_open
+    return is_open
+
 
 # Run the app
 if __name__ == "__main__":
