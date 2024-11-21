@@ -9,7 +9,7 @@ from dash import html, dcc
 from dash.dependencies import Input, Output, State
 import dash_bootstrap_components as dbc
 import json
-from dash_extensions.javascript import assign
+from dash_extensions.javascript import assign, arrow_function
 
 # from geopy.geocoders import Nominatim
 import warnings
@@ -172,15 +172,24 @@ def generate_style_handle(svi, geojson_data):
 
 
 # create tooltip
-def get_info(feature=None):
-    header = [html.H4("US Population Density")]
+def get_info(feature=None, svi_variable="E_TOTPOP"):
+    #header = [html.B("SVI Hover Display", style={"fontSize":"14px"}), html.Br()]
     if not feature:
-        return header + [html.P("Hover over a tract")]
-    return header + [html.B(feature["properties"]["E_TOTPOP"]), html.Br(),
-                     "{:.3f} TOTPOP".format(feature["properties"]["E_TOTPOP"]), html.Sup("2")]
+        return [html.B(svi_variable, style={"fontSize":"14px"}), html.Br(), "--"]
+    return [html.B(svi_variable, style={"fontSize":"14px"}), html.Br(), 
+                     feature["properties"][svi_variable]]
 
 info = html.Div(children=get_info(), id="info_tooltip", className="info_tooltip",
-                style={"position": "absolute", "top": "400px", "right": "10px", "zIndex": "1000"})
+                style={
+                    "position": "absolute",
+                    "top": "575px",
+                    "right": "23px",
+                    "zIndex": "9000",
+                    "backgroundColor": "rgba(255, 255, 255, 0.7)",
+                    "padding": "5px",
+                    "border": "1px solid #ccc",
+                    "borderRadius": "5px",
+                })
 
 def init_map():
     return dl.Map(
@@ -447,7 +456,7 @@ def update_choropleth(n_submit, svi_variable, failed_search, viewport, _):
         data=geo_json_data,
         style=style_handle,
         zoomToBoundsOnClick=True,
-        hoverStyle={"weight": 5, "color": "#666", "dashArray": ""},
+        hoverStyle=arrow_function({"weight": 5, "color": "#666", "dashArray": ""}),
         hideout=dict(
             colorscale=colorscale,
             classes=classes,
@@ -562,7 +571,7 @@ app.layout = dbc.Container(
                 width=6,
             )
         ),
-        dbc.Row(dbc.Col(html.Div(id="map-container", children=init_map()))),
+        dbc.Row(dbc.Col(html.Div(id="map-container", children=[init_map(), info]))),
         dbc.Row(id="map-description", children=
             [
                 dbc.Col(
@@ -628,9 +637,10 @@ app.layout = dbc.Container(
 @app.callback(
     Output("info_tooltip", "children"),
     Input("geojson_data", "hoverData"),
+    Input("SVI-val-dropdown", "value"),
 )
-def info_hover(feature):
-    return get_info(feature)
+def info_hover(feature, svi_variable):
+    return get_info(feature, svi_variable)
 
 # Run the app
 if __name__ == "__main__":
