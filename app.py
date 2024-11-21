@@ -474,7 +474,7 @@ app.layout = dbc.Container(
     [
         dbc.Row(
             dbc.Col(
-                html.H1("Grocery Stores and SVI Data", className="text-center mb-4")
+                html.H1("Food Access Explorer", className="text-center mb-4")
             )
         ),
         dbc.Row(
@@ -579,26 +579,27 @@ app.layout = dbc.Container(
                         [
                             dbc.Stack(
                                 [
-                                    html.Div(
-                                        "Welcome. This is a visual representation of food access across the United States. "
+                                    html.P([
+                                        html.B("Welcome!"), html.Br(),
+                                        "This is a visual representation of food access across the United States. ", html.Br(),
+                                        "We hope you can find interesting patterns of how food access and social indicators are related in your city", html.Br(),
+                                    ]
                                     ),
-                                    html.Div(
-                                        "If you enter a location in the left search bar, the map will search for food resources in the area selected."
-                                    ),
-                                    html.Div(
-                                        "The types of food resources searched are:"
-                                    ),
-                                    html.Li("Grocery Stores - large green dots"),
-                                    html.Li(
-                                        "Convenience Stores - mid-size blue dots"
-                                    ),
-                                    html.Li("Low Quality (Fast Food) - small red dots"),
-                                    html.Div(
-                                        "These food resource types can be toggled from the layer selector on the top right corner of the map"
-                                    ),
-                                    html.Div(
-                                        "When you enter a region, a dotted outline will show the boundary of the area.  This is the area that's being queried for food resources."
-                                    ),
+                                    html.P([
+                                        html.B("What are SVI Variables?"),html.Br(),
+                                        "The Center for Disease Control developed the Social Vulnerability Index (SVI) to better understand where disadvantaged populations live. There are many different SVI's measured by the CDC and we have provided a sample of them including:",html.Br(),
+                                        "   - E_TOTPOP: A simple count of the total population of a census tract", html.Br(),
+                                        "   - E_POV150: The count of people in an area living below 150% of the poverty line.", html.Br(),
+                                        "   - E_UNINSR: The count of people in an area without health insurance.", html.Br(),
+                                        "   - E_LIMENG: The count of people in an area who speak English 'less than well'.", html.Br(),
+                                        "   - E_MINRTY: The count of people in an area who are non-white and non-Hispanic.", html.Br(),
+                                        "   - E_MOBILE: The count of people in an area who are living in mobile homes.", html.Br(),
+                                        "   - E_NOVEH: The count of people in an area without ownership of a vehicle.", html.Br(),
+                                        "   - EPL_POV150: The national percentile of people in an area living below 150% of the poverty line.", html.Br(),
+                                        "   - RPL_THEME_5: This is an overall summary of all of the SVI's.", html.Br(), 
+                                        "In general, higher SVI scores mean more socially vulnerable people live in an area.", html.Br(),
+                                        "If you would like to learn more about the SVI variables, please refer to ", html.A("this CDC link.", href='https://svi.cdc.gov/map/data/docs/SVI2022Documentation_5.17.2024.pdf', target='_blank')
+                                    ]),
                                 ],
                             )
                         ]
@@ -609,15 +610,16 @@ app.layout = dbc.Container(
                         [
                             dbc.Stack(
                                 [
+                                    html.P([html.B("How to Use This Tool:"), html.Br(),
+                                           "This map will search for food resources in the area entered in the search bar. This search will work for big cities (nicknames such as 'San Fran' and 'Philly' are OK!), parts of cities (Manhattan), suburban areas, counties (Montgomery, PA) and even small rural towns.",
+                                            ]),
+                                    html.P("Food resources can be toggled through the selector in the upper-right corner of the map."),
                                     html.Div(
-                                        "On the right hand side, CDC's Social Vulnerability Index (SVI) overlays can be selected."
-                                    ),
-                                    html.Div(
-                                        "Selecting one of these variables will create a heatmap of the census tracts in the area selected."
+                                        "Select the CDC's Social Vulnerability Index (SVI) overlays on the right side. Selecting one of these SVI's will create a heatmap of the census tracts in the area searched. Often, higher numbers on this scale (daker areas on the map) represent more vulnerable populations."
                                     ),
                                     html.P(),
                                     html.Div(
-                                        "We hope the tool proves useful for studying food accessibility."
+                                        "We hope this tool proves useful for studying food accessibility :)"
                                     ),
                                     html.P(),
                                     html.Div(
