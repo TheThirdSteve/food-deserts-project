@@ -138,10 +138,7 @@ def generate_style_handle(svi, geojson_data):
         ]
 
     properties_max = max(properties_values)
-    properties_min = min(properties_values)
-
-    classes = np.linspace(properties_min, properties_max, 8).tolist()
-
+    properties_min = 0  # min(properties_values)
     colorscale = [
         "#FFEDA0",
         "#FED976",
@@ -152,6 +149,11 @@ def generate_style_handle(svi, geojson_data):
         "#BD0026",
         "#800026",
     ]
+
+    classes = np.linspace(
+        properties_min, properties_max + 1, len(colorscale) + 1
+    ).tolist()
+
     style = dict(weight=2, opacity=0.2, color="white", dashArray="3", fillOpacity=0.7)
 
     colorbar = dl.Colorbar(
@@ -171,9 +173,14 @@ def generate_style_handle(svi, geojson_data):
         """function(feature, context){
         const {classes, colorscale, style, colorProp} = context.hideout;  // get props from hideout
         const value = feature.properties[colorProp];  // get value that determines the color
-        for (let i = 0; i < classes.length; ++i) {
-            if (value > classes[i]) {
-                style.fillColor = colorscale[i];  // set the fill color according to the class
+        if (value == null) {
+            style.fillColor= '#808080';  
+            return style;
+        }
+        for (let i = 0; i < classes.length - 1; i++) {
+            if (value >= classes[i] && value <= classes[i + 1]) {
+                style.fillColor = colorscale[i];
+                break;
             }
         }
         return style;
@@ -186,7 +193,7 @@ def generate_style_handle(svi, geojson_data):
 # create tooltip
 def get_info(feature=None, svi_variable="E_TOTPOP"):
     # header = [html.B("SVI Hover Display", style={"fontSize":"14px"}), html.Br()]
-    if not feature:
+    if not feature or svi_variable == "None":
         return [html.B(svi_variable, style={"fontSize": "14px"}), html.Br(), "--"]
     return [
         html.B(svi_variable, style={"fontSize": "14px"}),
@@ -491,7 +498,7 @@ def update_choropleth(n_submit, svi_variable, failed_search, viewport, _):
             style=style,
             colorProp=svi_variable,
         ),
-        id="geojson_data",
+        id="choropleth-layer",
     )
 
     return choropleth, colorbar
@@ -602,7 +609,11 @@ app.layout = dbc.Container(
                         html.Div(
                             style={"flex": "1", "marginRight": "10px"},
                             children=[
-                                html.Label("Select a Location:", className="mb-2"),
+                                html.Label(
+                                    "Select a Location:",
+                                    className="mb-2",
+                                    htmlFor="location-input",
+                                ),
                                 dcc.Input(
                                     type="text",
                                     value="Denver, CO",
@@ -692,8 +703,9 @@ app.layout = dbc.Container(
 
 @app.callback(
     Output("info_tooltip", "children"),
-    Input("geojson_data", "hoverData"),
+    Input("choropleth-layer", "hoverData"),
     Input("SVI-val-dropdown", "value"),
+    prevent_initial_call=True,
 )
 def info_hover(feature, svi_variable):
     return get_info(feature, svi_variable)
