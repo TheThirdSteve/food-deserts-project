@@ -16,6 +16,16 @@ import geopandas as gpd
 import warnings
 import requests
 
+http_user_agent = r"food-desert-analysis.com/1.0 (jfarina3@gatech.edu)"
+http_referrer = "food-desert-analysis.com"
+ox.settings.http_user_agent = http_user_agent
+ox.settings.http_referrer = http_referrer
+headers = {
+    "User-Agent": http_user_agent,
+    "Referer": http_referrer,
+}
+
+requests.utils.default_headers().update(headers)
 
 # Adjust working directory and sys.path
 current_dir = os.getcwd().split("/")[-1]
@@ -100,8 +110,9 @@ def find_center_of_location(grocery):
 
 
 def find_state(center):
+
     url = f"https://nominatim.openstreetmap.org/reverse?format=json&lat={center[0]}&lon={center[1]}&zoom=10&addressdetails=1"
-    response = requests.get(url)
+    response = requests.get(url, headers=headers)
     data = response.json()
     address = data.get("address", {})
     state_code = address.get("ISO3166-2-lvl4", "").split("-")[-1]
@@ -141,7 +152,7 @@ def generate_style_handle(svi, geojson_data):
         "#BD0026",
         "#800026",
     ]
-    style = dict(weight=2, opacity=0.2, color="white", dashArray="3", fillOpacity=0.5)
+    style = dict(weight=2, opacity=0.2, color="white", dashArray="3", fillOpacity=0.7)
 
     colorbar = dl.Colorbar(
         id="colorbar",
@@ -221,13 +232,13 @@ def init_map():
             dl.Pane(
                 dl.LayerGroup(id="choropleth-layer"),
                 name="choropleth-pane",
-                style={"zIndex": 250},
+                style={"zIndex": 200},
             ),
             # Search area highlight
             dl.Pane(
                 dl.LayerGroup(id="boundary-layer"),
                 name="boundary-pane",
-                style={"zIndex": 200},
+                style={"zIndex": 250},
             ),
             # POI layers
             dl.Pane(
@@ -472,7 +483,7 @@ def update_choropleth(n_submit, svi_variable, failed_search, viewport, _):
     choropleth = dl.GeoJSON(
         data=geo_json_data,
         style=style_handle,
-        zoomToBoundsOnClick=True,
+        zoomToBoundsOnClick=False,
         hoverStyle=arrow_function({"weight": 5, "color": "#666", "dashArray": ""}),
         hideout=dict(
             colorscale=colorscale,
@@ -546,7 +557,7 @@ modal = html.Div(
                                         "paddingLeft": "2rem",
                                     },
                                 ),
-                                 "In general, higher SVI scores mean more socially vulnerable people live in an area.",
+                                "In general, higher SVI scores mean more socially vulnerable people live in an area.",
                                 html.Br(),
                                 "If you would like to learn more about the SVI variables, please refer to ",
                                 html.A(
