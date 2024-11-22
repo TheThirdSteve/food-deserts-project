@@ -129,7 +129,7 @@ def generate_style_handle(svi, geojson_data):
     properties_max = max(properties_values)
     properties_min = min(properties_values)
 
-    classes = np.linspace(properties_min, properties_max, 10).tolist()
+    classes = np.linspace(properties_min, properties_max, 8).tolist()
 
     colorscale = [
         "#FFEDA0",
