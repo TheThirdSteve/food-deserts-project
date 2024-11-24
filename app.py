@@ -177,9 +177,9 @@ def generate_style_handle(svi, geojson_data):
             style.fillColor= '#808080';  
             return style;
         }
-        for (let i = 0; i < classes.length - 1; i++) {
-            if (value >= classes[i] && value <= classes[i + 1]) {
-                style.fillColor = colorscale[i];
+        for (let i = 0; i < classes.length; i++) {
+            if (value >= classes[i] && value < classes[i+1]) {
+                style.fillColor = colorscale[i];  // set the fill color according to the class
                 break;
             }
         }
@@ -705,7 +705,7 @@ app.layout = dbc.Container(
     Output("info_tooltip", "children"),
     Input("choropleth-layer", "hoverData"),
     Input("SVI-val-dropdown", "value"),
-    prevent_initial_call=True,
+    prevent_initial_callbacks=True,
 )
 def info_hover(feature, svi_variable):
     return get_info(feature, svi_variable)
