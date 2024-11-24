@@ -136,8 +136,10 @@ def generate_style_handle(svi, geojson_data):
             for feature in geojson_data["features"]
             if feature["properties"][svi] != -999
         ]
-
-    properties_max = max(properties_values)
+    if svi.startswith("E_"):
+        properties_max = max(properties_values)
+    elif svi.startswith("EPL_") or svi.startswith("RPL_") or svi.startswith("EP_"):
+        properties_max = 1.0
     properties_min = 0  # min(properties_values)
     colorscale = [
         "#FFEDA0",
@@ -148,10 +150,11 @@ def generate_style_handle(svi, geojson_data):
         "#E31A1C",
         "#BD0026",
         "#800026",
+        
     ]
 
     classes = np.linspace(
-        properties_min, properties_max + 1, len(colorscale) + 1
+        properties_min, properties_max * 1.001, len(colorscale) + 1
     ).tolist()
 
     style = dict(weight=2, opacity=0.2, color="white", dashArray="3", fillOpacity=0.7)
@@ -708,6 +711,7 @@ app.layout = dbc.Container(
         dbc.Row(dbc.Col(html.Div(id="map-container", children=[init_map(), info]))),
     ],
     fluid=True,
+    
 )
 
 
