@@ -210,7 +210,7 @@ info = html.Div(
         "position": "absolute",
         "top": "575px",
         "right": "23px",
-        "zIndex": "9000",
+        "zIndex": "999",
         "backgroundColor": "rgba(255, 255, 255, 0.7)",
         "padding": "5px",
         "border": "1px solid #ccc",
@@ -233,19 +233,19 @@ def init_map():
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
                 ),
                 name="tile-pane",
-                style={"zIndex": 100},
+                style={"zIndex": 10},
             ),
             # Choropleth layer
             dl.Pane(
                 dl.LayerGroup(id="choropleth-layer"),
                 name="choropleth-pane",
-                style={"zIndex": 200},
+                style={"zIndex": 20},
             ),
             # Search area highlight
             dl.Pane(
                 dl.LayerGroup(id="boundary-layer"),
                 name="boundary-pane",
-                style={"zIndex": 250},
+                style={"zIndex": 25},
             ),
             # POI layers
             dl.Pane(
@@ -256,7 +256,7 @@ def init_map():
                             dl.Pane(
                                 dl.LayerGroup(id="grocery-layer"),
                                 name="grocery-pane",
-                                style={"zIndex": 600},
+                                style={"zIndex": 60},
                             ),
                             name="Grocery Stores",
                             checked=True,
@@ -265,7 +265,7 @@ def init_map():
                             dl.Pane(
                                 dl.LayerGroup(id="convenience-layer"),
                                 name="convenience-pane",
-                                style={"zIndex": 500},
+                                style={"zIndex": 50},
                             ),
                             name="Convenience Stores",
                             checked=True,
@@ -274,20 +274,20 @@ def init_map():
                             dl.Pane(
                                 dl.LayerGroup(id="lowquality-layer"),
                                 name="lowquality-pane",
-                                style={"zIndex": 400},
+                                style={"zIndex": 40},
                             ),
                             name="Low Quality (Fast Food)",
                             checked=True,
                         ),
                     ]
                 ),
-                style={"zIndex": 9998},
+                style={"zIndex": 999},
             ),
             # Colorbar (overlay)
             dl.Pane(
                 html.Div(id="colorbar-container"),
                 name="colorbar-pane",
-                style={"zIndex": 9999},
+                style={"zIndex": 999},
             ),
             # Legend
             html.Div(
@@ -296,7 +296,7 @@ def init_map():
                     "position": "absolute",
                     "bottom": "20px",
                     "right": "10px",
-                    "zIndex": "400",
+                    "zIndex": 999,
                     "backgroundColor": "rgba(255, 255, 255, 0.7)",
                     "padding": "5px",
                     "border": "1px solid #ccc",
