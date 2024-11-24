@@ -210,7 +210,7 @@ info = html.Div(
         "position": "absolute",
         "top": "575px",
         "right": "23px",
-        "zIndex": "999",
+        "zIndex": 500,
         "backgroundColor": "rgba(255, 255, 255, 0.7)",
         "padding": "5px",
         "border": "1px solid #ccc",
@@ -229,7 +229,7 @@ def init_map():
             # Base tile layer (bottom)
             dl.Pane(
                 dl.TileLayer(
-                    url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+                    url="https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png",
                     attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
                 ),
                 name="tile-pane",
@@ -246,6 +246,14 @@ def init_map():
                 dl.LayerGroup(id="boundary-layer"),
                 name="boundary-pane",
                 style={"zIndex": 25},
+            ),
+            dl.Pane(
+                dl.TileLayer(
+                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager_only_labels/{z}/{x}/{y}{r}.png",
+                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                ),
+                name="tile-labels-pane",
+                style={"zIndex": 35},
             ),
             # POI layers
             dl.Pane(
@@ -281,13 +289,13 @@ def init_map():
                         ),
                     ]
                 ),
-                style={"zIndex": 999},
+                style={"zIndex": 500},
             ),
             # Colorbar (overlay)
             dl.Pane(
                 html.Div(id="colorbar-container"),
                 name="colorbar-pane",
-                style={"zIndex": 999},
+                style={"zIndex": 500},
             ),
             # Legend
             html.Div(
@@ -296,7 +304,7 @@ def init_map():
                     "position": "absolute",
                     "bottom": "20px",
                     "right": "10px",
-                    "zIndex": 999,
+                    "zIndex": 500,
                     "backgroundColor": "rgba(255, 255, 255, 0.7)",
                     "padding": "5px",
                     "border": "1px solid #ccc",
@@ -677,7 +685,9 @@ app.layout = dbc.Container(
                                     ],
                                     value="E_TOTPOP",
                                     className="mb-4",
-                                    style=dict(width="100%"),
+                                    style=dict(
+                                        width="100%", position="relative", zIndex=1000
+                                    ),
                                 ),
                             ],
                         ),
